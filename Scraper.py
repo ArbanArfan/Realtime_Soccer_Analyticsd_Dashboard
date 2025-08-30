@@ -237,7 +237,7 @@ CORS(
     max_age=86400
 )
 
-dblink = "mongodb://localhost:27017/"
+dblink = "mongodblink"
 # MongoDB connection
 client = pymongo.MongoClient(dblink)
 db = client["bongdanet_db"]
@@ -248,7 +248,15 @@ def run_scrape():
     try:
         out_obj = scrape_data()
         result = collection.insert_one(out_obj)
-        return jsonify({"message": "Scraped and stored successfully", "id": str(result.inserted_id), "data": out_obj})
+        # Prepare a copy of out_obj for JSON response (convert ObjectId if present)
+        response_obj = out_obj.copy()
+        if '_id' in response_obj:
+            response_obj['_id'] = str(response_obj['_id'])
+        return jsonify({
+            "message": "Scraped and stored successfully",
+            "id": str(result.inserted_id),
+            "scraped": response_obj
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -282,7 +290,16 @@ def get_by_id(id):
             return jsonify({"error": "Not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
+@app.route('/data/<id>', methods=['DELETE'])
+def delete_by_id(id):
+    try:
+        result = collection.delete_one({"_id": ObjectId(id)})
+        if result.deleted_count == 1:
+            return jsonify({"message": f"Deleted entry with id {id}."}), 200
+        else:
+            return jsonify({"error": "Not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 @app.route('/data/clear', methods=['POST'])
 def clear_data():
     try:

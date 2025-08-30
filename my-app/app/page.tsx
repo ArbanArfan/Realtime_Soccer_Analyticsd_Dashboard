@@ -181,12 +181,13 @@ export interface MatchData {
 }
 
 export interface TableData {
+  _id: string;
   scraped_at_cst: string;
   data: MatchData[];
 }
 
 export default function BongdanetDataPage() {
-  const [tables, setTables] = useState<TableData[]>([sampleData, sampleData2]);
+  const [tables, setTables] = useState<TableData[]>([]);
   const [selectedTableIndex, setSelectedTableIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("competition");
@@ -205,12 +206,24 @@ export default function BongdanetDataPage() {
         setIsLoading(true);
         const resp = await axios.get(`${BACKEND_API_URL}/data`);
         console.log("Fetched data:", resp.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+
+        // resp.data is an array of tables, each with a .data array (which is itself an array of arrays)
+        // We want to flatten all the inner arrays into a single array for each table
+        setTables(
+          resp.data.map((d: any) => ({
+            ...d,
+            data: Array.isArray(d.data)
+              ? d.data.flat() // flatten one level if d.data is array of arrays
+              : [],
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, []);
   // Filter data based on search and filters
@@ -261,36 +274,48 @@ export default function BongdanetDataPage() {
 
   const handleUpdateTable = async () => {
     setIsLoading(true);
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      // Simulate API call delay
+      const response = await axios.get(`${BACKEND_API_URL}/scrape`);
+      console.log("Scrape response:", response.data);
+      const newTable = response.data.scraped;
 
-    // Add a new table with current timestamp
-    const newTable = {
-      ...sampleData,
-      scraped_at_cst: `CST ${new Date().toLocaleDateString("en-US", {
-        weekday: "short",
-      })} ${new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`,
-    };
-
-    setTables((prev) => [...prev, newTable]);
-    setSelectedTableIndex(tables.length);
-    setIsLoading(false);
-  };
-
-  const handleDeleteTable = (index: number) => {
-    setTables((prev) => prev.filter((_, i) => i !== index));
-    if (selectedTableIndex >= index && selectedTableIndex > 0) {
-      setSelectedTableIndex(selectedTableIndex - 1);
+      setTables((prev) => [
+        ...prev,
+        {
+          ...newTable,
+          data: Array.isArray(newTable.data) ? newTable.data.flat() : [],
+        },
+      ]);
+      setSelectedTableIndex(tables.length);
+    } catch (error) {
+      console.error("Error during scraping:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleClearAllData = () => {
-    setTables([]);
-    setSelectedTableIndex(0);
-    setShowClearDialog(false);
+  const handleDeleteTable = async (index: number) => {
+    try {
+      await axios.delete(`${BACKEND_API_URL}/data/${tables[index]._id}`);
+      setTables((prev) => prev.filter((_, i) => i !== index));
+      if (selectedTableIndex >= index && selectedTableIndex > 0) {
+        setSelectedTableIndex(selectedTableIndex - 1);
+      }
+    } catch (err) {
+      console.error("Error deleting table:", err);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    try {
+      await axios.post(`${BACKEND_API_URL}/data/clear`);
+      setTables([]);
+      setSelectedTableIndex(0);
+      setShowClearDialog(false);
+    } catch (err) {
+      console.error("Error clearing data:", err);
+    }
   };
 
   const getChangedValues = (
