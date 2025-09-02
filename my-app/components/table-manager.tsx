@@ -1,20 +1,46 @@
-"use client"
+"use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Trash2 } from "lucide-react"
-import type { TableData } from "@/app/page"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Table as TableIcon, ListTree } from "lucide-react";
+import type { TableData } from "@/app/page";
 
 interface TableManagerProps {
-  tables: TableData[]
-  selectedTableIndex: number
-  onSelectTable: (index: number) => void
-  onDeleteTable: (index: number) => void
+  tables: TableData[];
+  selectedTableIndex: number;
+  onSelectTable: (index: number) => void;
+  onDeleteTable: (index: number) => void;
+  onToggleIndex: () => void;
+  showIndexView?: boolean;
 }
 
-export function TableManager({ tables, selectedTableIndex, onSelectTable, onDeleteTable }: TableManagerProps) {
-  if (tables.length === 0) return null
+export function TableManager({
+  tables,
+  selectedTableIndex,
+  onSelectTable,
+  onDeleteTable,
+  onToggleIndex,
+  showIndexView,
+}: TableManagerProps) {
+  if (tables.length === 0) {
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-slate-900">Table Management</h3>
+        <div className="flex flex-row gap-3">
+          <Button variant="outline" size="sm" disabled>
+            Index Table
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -44,6 +70,25 @@ export function TableManager({ tables, selectedTableIndex, onSelectTable, onDele
           </Select>
         </div>
 
+        {/* Index Table toggle */}
+        <Button
+          variant={showIndexView ? "default" : "outline"}
+          size="sm"
+          onClick={onToggleIndex}
+          className={showIndexView ? "bg-slate-900 text-white hover:bg-slate-800" : ""}
+          title="Toggle Index Table"
+        >
+          {showIndexView ? (
+            <>
+              <TableIcon className="h-4 w-4 mr-1" /> Showing Index
+            </>
+          ) : (
+            <>
+              <ListTree className="h-4 w-4 mr-1" /> Index Table
+            </>
+          )}
+        </Button>
+
         {tables.length > 1 && (
           <Button
             variant="outline"
@@ -58,9 +103,15 @@ export function TableManager({ tables, selectedTableIndex, onSelectTable, onDele
       </div>
 
       <div className="text-sm text-slate-600">
-        Showing {tables.length} table{tables.length !== 1 ? "s" : ""} • Current: Table {selectedTableIndex + 1} (
-        {tables[selectedTableIndex]?.scraped_at_cst})
+        {showIndexView ? (
+          <>Showing Index Table</>
+        ) : (
+          <>
+            Showing {tables.length} table{tables.length !== 1 ? "s" : ""} • Current: Table{" "}
+            {selectedTableIndex + 1} ({tables[selectedTableIndex]?.scraped_at_cst})
+          </>
+        )}
       </div>
     </div>
-  )
+  );
 }
