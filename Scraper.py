@@ -237,7 +237,7 @@ CORS(
     max_age=86400
 )
 
-dblink = "mongodb+srv://i220801:gyEnigUzFp75pBEq@backendcluster.ijbpyf6.mongodb.net/scraper?retryWrites=true&w=majority&appName=BackendCluster"
+dblink = "mongodb://localhost:27017/"  # Change as needed
 # MongoDB connection
 client = pymongo.MongoClient(dblink)
 db = client["bongdanet_db"]
